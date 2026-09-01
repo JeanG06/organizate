@@ -13,7 +13,6 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ---------- Estado global ----------
 const estado = {
   user: null,
-  perfil: null,       // { user_id, rol } | null
   hoteles: [],        // [{id, nombre, color}]
   fichas: [],         // [{...}]
   registros: [],      // [{id, ficha_id, fecha, descripcion}]
@@ -60,7 +59,7 @@ $('btn-logout').addEventListener('click', async () => { await supabase.auth.sign
 supabase.auth.onAuthStateChange((event, session) => {
   estado.user = session ? session.user : null;
   if (estado.user) { cargarTodo(); mostrarApp(); }
-  else { estado.perfil = null; esconderAdmin(); mostrarLogin(); }
+  else { mostrarLogin(); }
 });
 
 // ============================================================
@@ -68,31 +67,10 @@ supabase.auth.onAuthStateChange((event, session) => {
 // ============================================================
 async function cargarTodo() {
   estado.mesActual = new Date();
-  await Promise.all([cargarHoteles(), cargarFichas(), cargarRegistros(), cargarInstancias(), cargarPerfil()]);
+  await Promise.all([cargarHoteles(), cargarFichas(), cargarRegistros(), cargarInstancias()]);
   renderizarHoteles();
-  mostrarAdminSiAplica();
   renderizarTodo();
 }
-
-async function cargarPerfil() {
-  if (!estado.user) { estado.perfil = null; return; }
-  // RLS en perfiles lo bloquea para el cliente; usamos una funcion/edge segura o la guardamos
-  // via el backend. Como admin se determina en backend, aqui intentamos leer pero RLS da vacio.
-  // Alternativa: guardar el rol en una columna del usuario en auth (app_metadata) es la forma limpia.
-  const { data, error } = await supabase
-    .from('perfiles')
-    .select('rol')
-    .eq('user_id', estado.user.id)
-    .maybeSingle();
-  if (!error && data) estado.perfil = data;
-  else estado.perfil = null;
-}
-
-function esAdmin() {
-  return estado.perfil && estado.perfil.rol === 'admin';
-}
-function mostrarAdminSiAplica() { $('btn-usuarios').classList.toggle('hidden', !esAdmin()); }
-function esconderAdmin() { $('btn-usuarios').classList.add('hidden'); }
 
 async function cargarHoteles() {
   const { data, error } = await supabase.from('hoteles').select('*').order('nombre');
@@ -682,121 +660,6 @@ $('form-registro').addEventListener('submit', async (e) => {
   abrirDetalle(f.id, fecha);
   renderizarTodo();
 });
-
-// ============================================================
-// ADMIN USUARIOS (backend /api/usuarios)
-// ============================================================
-async function llamarApiUsuarios(method, body, idParam) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
-  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
-  if (body !== undefined) opts.body = JSON.stringify(body);
-
-  let url = '/api/usuarios';
-  if (idParam) url += '?id=' + encodeURIComponent(idParam);
-
-  const res = await fetch(url, opts);
-  let data = null;
-  try { data = await res.json(); } catch (_) {}
-  return { ok: res.ok, status: res.status, data };
-}
-
-$('btn-usuarios').addEventListener('click', () => {
-  $('modal-usuarios').classList.remove('hidden');
-  cargarListaUsuarios();
-});
-$('u-cerrar').addEventListener('click', () => $('modal-usuarios').classList.add('hidden'));
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', (e) => { if (e.target === m) m.classList.add('hidden'); });
-});
-
-$('form-ucrear').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const error = $('u-error');
-  limpiarError(error);
-  const email = $('u-email').value.trim();
-  const password = $('u-pass').value;
-  const r = await llamarApiUsuarios('POST', { email, password, rol: 'user' });
-  if (!r.ok) { mostrarError(error, (r.data && r.data.error) || 'Error al crear usuario'); return; }
-  $('u-email').value = '';
-  $('u-pass').value = '';
-  cargarListaUsuarios();
-});
-
-async function cargarListaUsuarios() {
-  const error = $('u-error');
-  const lista = $('u-lista');
-  lista.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Cargando...</div>';
-  const r = await llamarApiUsuarios('GET');
-  if (!r.ok) {
-    lista.innerHTML = '';
-    mostrarError(error, (r.data && r.data.error) || 'Error al cargar usuarios');
-    return;
-  }
-  const users = (r.data && r.data.users) || [];
-  lista.innerHTML = '';
-  if (users.length === 0) {
-    lista.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Sin usuarios.</div>';
-    return;
-  }
-  users.forEach(u => {
-    const item = document.createElement('div');
-    item.className = 'u-item';
-    const esAdmin = u.rol === 'admin';
-    const estadoTxt = u.estado === 'activo' ? '✓' : (u.estado === 'inactivo' ? '⛔' : '…');
-
-    item.innerHTML = `
-      <span class="u-mail">${estadoTxt} ${escapar(u.email)}</span>
-      ${esAdmin ? '<span class="u-badge-admin">ADMIN</span>' : `<span class="u-rol">${u.rol}</span>`}
-    `;
-    const acciones = document.createElement('div');
-
-    // Resetear contraseña
-    const btnPass = document.createElement('button');
-    btnPass.className = 'btn btn-ghost';
-    btnPass.textContent = 'Reset pass';
-    btnPass.addEventListener('click', async () => {
-      const nueva = prompt('Nueva contraseña para ' + u.email);
-      if (!nueva) return;
-      const rr = await llamarApiUsuarios('PATCH', { id: u.id, password: nueva });
-      if (!rr.ok) mostrarError(error, (rr.data && rr.data.error) || 'Error');
-      else cargarListaUsuarios();
-    });
-    acciones.appendChild(btnPass);
-
-    // Activar / desactivar
-    const btnBan = document.createElement('button');
-    btnBan.className = 'btn btn-ghost';
-    btnBan.textContent = u.estado === 'inactivo' ? 'Activar' : 'Desactivar';
-    btnBan.addEventListener('click', async () => {
-      const rr = await llamarApiUsuarios('PATCH', { id: u.id, ban: u.estado !== 'inactivo' });
-      if (!rr.ok) mostrarError(error, (rr.data && rr.data.error) || 'Error');
-      else cargarListaUsuarios();
-    });
-    acciones.appendChild(btnBan);
-
-    // Eliminar (solo si no es el propio admin actual)
-    if (u.id !== estado.user.id) {
-      const btnDel = document.createElement('button');
-      btnDel.className = 'btn btn-danger';
-      btnDel.textContent = 'Eliminar';
-      btnDel.addEventListener('click', async () => {
-        if (!confirm('¿Eliminar al usuario ' + u.email + '? Se borrarán sus datos.')) return;
-        const rr = await llamarApiUsuarios('DELETE', undefined, u.id);
-        if (!rr.ok) mostrarError(error, (rr.data && rr.data.error) || 'Error');
-        else cargarListaUsuarios();
-      });
-      acciones.appendChild(btnDel);
-    }
-
-    item.appendChild(acciones);
-    lista.appendChild(item);
-  });
-}
 
 // ============================================================
 // NAVEGACION DE MES

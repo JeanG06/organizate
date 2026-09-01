@@ -24,8 +24,6 @@
         <input type="password" id="login-pass" autocomplete="current-password" required placeholder="••••••••" />
         <button type="submit" class="btn btn-primary btn-block" id="login-btn">Ingresar</button>
       </form>
-
-      <p class="switch-auth">Acceso restringido a usuarios autorizados.</p>
     </div>
   </section>
 
@@ -50,7 +48,6 @@
       </div>
 
       <div class="header-actions">
-        <button id="btn-usuarios" class="btn btn-ghost hidden" title="Administrar usuarios">👥 Usuarios</button>
         <button id="btn-nueva-ficha" class="btn btn-primary">+ Nueva ficha</button>
         <button id="btn-logout" class="btn btn-ghost" title="Cerrar sesion">Salir</button>
       </div>
@@ -171,32 +168,6 @@
       <div class="modal-actions">
         <button type="button" id="d-eliminar" class="btn btn-danger">Eliminar ficha</button>
       </div>
-    </div>
-  </div>
-
-  <!-- ======= MODAL ADMIN USUARIOS ======= -->
-  <div id="modal-usuarios" class="modal-overlay hidden">
-    <div class="modal modal-wide">
-      <div class="detalle-header">
-        <div class="detalle-titulos">
-          <h3>👥 Administrar usuarios</h3>
-        </div>
-        <button class="btn-icon" id="u-cerrar">✕</button>
-      </div>
-      <div id="u-error" class="login-error hidden"></div>
-
-      <form id="form-ucrear" class="u-crear">
-        <label>Crear nuevo usuario</label>
-        <div class="u-crear-fila">
-          <input type="email" id="u-email" placeholder="correo@hotel.com" required />
-          <input type="password" id="u-pass" placeholder="Contraseña" required autocomplete="new-password" />
-          <button type="submit" class="btn btn-primary">Crear</button>
-        </div>
-      </form>
-
-      <hr />
-      <h4>Usuarios existentes</h4>
-      <div id="u-lista" class="u-lista"></div>
     </div>
   </div>
 
