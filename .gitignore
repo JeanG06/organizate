@@ -1,0 +1,11 @@
+# Node
+node_modules/
+*.log
+.DS_Store
+
+# Credenciales locales / Vercel
+.vercel/
+.env
+.env.local
+js/env.js
+scripts/env.js

@@ -1,0 +1,9 @@
+{
+  "name": "organizate",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Tablero de trabajo tipo ajedrez/post-its para TI & Hoteles",
+  "scripts": {
+    "build": "node scripts/build-env.js"
+  }
+}

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OrganizaTe · Tablero de TI</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body>
+
+  <!-- ======= PANTALLA DE LOGIN ======= -->
+  <section id="pantalla-login" class="screen login-screen">
+    <div class="login-card">
+      <div class="login-logo">♟️</div>
+      <h1>OrganizaTe</h1>
+      <p class="login-sub">Tablero de trabajo · TI & Hoteles</p>
+
+      <div id="login-error" class="login-error hidden"></div>
+
+      <form id="login-form">
+        <label>Correo</label>
+        <input type="email" id="login-email" autocomplete="email" required placeholder="tu@correo.com" />
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" autocomplete="current-password" required placeholder="••••••••" />
+        <button type="submit" class="btn btn-primary btn-block" id="login-btn">Ingresar</button>
+      </form>
+
+      <p class="switch-auth">Acceso restringido a usuarios autorizados.</p>
+    </div>
+  </section>
+
+  <!-- ======= APP PRINCIPAL ======= -->
+  <section id="pantalla-app" class="screen app-screen hidden">
+
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon">♟️</span>
+        <span class="brand-name">OrganizaTe</span>
+      </div>
+
+      <!-- Filtro por hotel -->
+      <div class="hotel-filter" id="hotel-filter"></div>
+
+      <!-- Controles de mes -->
+      <div class="month-nav">
+        <button id="btn-mes-anterior" class="btn-icon" title="Mes anterior">◀</button>
+        <h2 id="mes-titulo">—</h2>
+        <button id="btn-mes-siguiente" class="btn-icon" title="Mes siguiente">▶</button>
+        <button id="btn-hoy" class="btn btn-ghost">Hoy</button>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-usuarios" class="btn btn-ghost hidden" title="Administrar usuarios">👥 Usuarios</button>
+        <button id="btn-nueva-ficha" class="btn btn-primary">+ Nueva ficha</button>
+        <button id="btn-logout" class="btn btn-ghost" title="Cerrar sesion">Salir</button>
+      </div>
+    </header>
+
+    <!-- Leyenda de periodos -->
+    <div class="leyenda">
+      <span><i class="dot manana"></i> Mañana</span>
+      <span><i class="dot tarde"></i> Tarde</span>
+      <span><i class="dot noche"></i> Noche</span>
+      <span><i class="dot fija"></i> Fija (tiene registro)</span>
+    </div>
+
+    <!-- Calendario mensual -->
+    <main id="calendario" class="calendario"></main>
+
+    <!-- Fichas de la bandeja (sin fecha asignada) -->
+    <section class="bandeja">
+      <h3>📋 Bandeja de fichas (sin día asignado)</h3>
+      <div id="bandeja-contenido" class="bandeja-contenido"></div>
+    </section>
+
+  </section>
+
+  <!-- ======= MODAL NUEVA/EDITAR FICHA ======= -->
+  <div id="modal-ficha" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="modal-ficha-titulo">Nueva ficha</h3>
+      <form id="form-ficha">
+        <label>Emoji / símbolo</label>
+        <input type="text" id="f-emoji" maxlength="4" placeholder="🛎️" />
+
+        <label>Titulo (actividad)</label>
+        <input type="text" id="f-titulo" required placeholder="ej. Revisar facturacion" />
+
+        <label>Hotel</label>
+        <select id="f-hotel"></select>
+
+        <label>Periodo del día</label>
+        <select id="f-periodo">
+          <option value="manana">Mañana</option>
+          <option value="tarde">Tarde</option>
+          <option value="noche">Noche</option>
+        </select>
+
+        <label>Fecha (dejar vacío = sin asignar / bandeja)</label>
+        <input type="date" id="f-fecha" />
+
+        <label>Recurrencia</label>
+        <select id="f-recurrencia">
+          <option value="puntual">Puntual (una vez)</option>
+          <option value="diaria">Diaria</option>
+          <option value="semanal">Semanal</option>
+          <option value="mensual">Mensual</option>
+        </select>
+
+        <label>Hora (opcional)</label>
+        <input type="time" id="f-hora" />
+
+        <label>Responsable (opcional)</label>
+        <input type="text" id="f-responsable" placeholder="ej. Yo / Recepción / Housekeeping" />
+
+        <label>Descripción</label>
+        <textarea id="f-descripcion" rows="2" placeholder="Detalle de la actividad"></textarea>
+
+        <div class="modal-actions">
+          <button type="button" id="f-cancelar" class="btn btn-ghost">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======= MODAL VER / REGISTRAR TRABAJO ======= -->
+  <div id="modal-ficha-detalle" class="modal-overlay hidden">
+    <div class="modal modal-wide">
+      <div class="detalle-header">
+        <span id="d-emoji" class="detalle-emoji">🛎️</span>
+        <div class="detalle-titulos">
+          <h3 id="d-titulo">Titulo</h3>
+          <span id="d-hotel-badge" class="badge">Hotel</span>
+        </div>
+        <button class="btn-icon" id="d-cerrar">✕</button>
+      </div>
+
+      <p class="detalle-periodo" id="d-periodo">Mañana</p>
+      <p class="detalle-fecha" id="d-fecha">—</p>
+      <div id="d-meta" class="detalle-meta"></div>
+      <p class="detalle-descripcion" id="d-descripcion"></p>
+
+      <div id="d-fija-aviso" class="fija-aviso hidden">
+        🔒 Esta ficha tiene registro de trabajo hecho, por eso está fija.
+      </div>
+
+      <div id="d-recurrencia-aviso" class="fija-aviso info hidden">
+        🔁 Ficha recurrente: <strong id="d-recurrencia-txt"></strong>
+      </div>
+
+      <hr />
+
+      <h4>Registros de trabajo hecho</h4>
+      <div id="d-registros" class="registros"></div>
+
+      <div id="d-instancias-bloque" class="hidden">
+        <h4>📅 Ocurrencias <span id="d-instancia-autor"></span></h4>
+        <div id="d-instancias" class="instancias"></div>
+      </div>
+
+      <form id="form-registro">
+        <label>Nuevo registro (lo que se hizo)</label>
+        <textarea id="r-descripcion" rows="2" placeholder="ej. Realice la reconciliacion del hotel, todo OK"></textarea>
+        <div class="modal-actions">
+          <button type="button" id="d-editar" class="btn btn-ghost">Editar ficha</button>
+          <button type="submit" class="btn btn-primary">Registrar trabajo hecho</button>
+        </div>
+      </form>
+
+      <div class="modal-actions">
+        <button type="button" id="d-eliminar" class="btn btn-danger">Eliminar ficha</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= MODAL ADMIN USUARIOS ======= -->
+  <div id="modal-usuarios" class="modal-overlay hidden">
+    <div class="modal modal-wide">
+      <div class="detalle-header">
+        <div class="detalle-titulos">
+          <h3>👥 Administrar usuarios</h3>
+        </div>
+        <button class="btn-icon" id="u-cerrar">✕</button>
+      </div>
+      <div id="u-error" class="login-error hidden"></div>
+
+      <form id="form-ucrear" class="u-crear">
+        <label>Crear nuevo usuario</label>
+        <div class="u-crear-fila">
+          <input type="email" id="u-email" placeholder="correo@hotel.com" required />
+          <input type="password" id="u-pass" placeholder="Contraseña" required autocomplete="new-password" />
+          <button type="submit" class="btn btn-primary">Crear</button>
+        </div>
+      </form>
+
+      <hr />
+      <h4>Usuarios existentes</h4>
+      <div id="u-lista" class="u-lista"></div>
+    </div>
+  </div>
+
+  <!-- Vista previa flotante (hover) -->
+  <div id="vista-previa" class="vista-previa hidden"></div>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="js/env.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
