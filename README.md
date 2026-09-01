@@ -15,13 +15,11 @@ Un calendario mensual donde tus actividades son **fichas** que visualizas de gol
 
 ## Fases
 - **Fase 1:** tablero de post-its + fichas recurrentes + campos hora/responsable. ✅
-- **Fase 1.5 (actual):** acceso restringido con **sistema de usuarios (admin)** + backend en Vercel Functions. ✅
 - **Fase 2 (pendiente):** alertas de pendientes, panel de métricas, vista dedicada por hotel.
 
 ## Stack
 - Frontend: HTML/JS estático (Supabase JS por CDN).
 - Base de datos: **Supabase** (Auth, RLS).
-- Backend: **Vercel Functions** (`/api/usuarios`) que usa la `service_role key` (nunca expuesta al navegador).
 - Despliegue: **Vercel** + repo **GitHub**.
 
 ---
@@ -30,31 +28,15 @@ Un calendario mensual donde tus actividades son **fichas** que visualizas de gol
 
 ### a) Migraciones de base (en orden)
 Ve a **Supabase Dashboard → tu proyecto → SQL Editor → New query** y ejecuta en orden:
-1. **`supabase/schema.sql`** (tablas base).
+1. **`supabase/schema.sql`** (tablas base: `hoteles`, `fichas`, `registros` + RLS).
 2. **`supabase/schema_v2.sql`** (recurrencia + `instancias`).
-3. **`supabase/schema_v3.sql`** (tabla `perfiles` para roles).
 
-### b) Acceso de usuarios (cerrado)
-- **Desactiva el registro abierto**: Supabase → **Authentication → Providers → Email** → desmarca **"Allow new users to sign up"**.
-- Para cada usuario (incluido tu admin), créalo en **Authentication → Users → Add user** (auto confirm ON): correo + contraseña.
+### b) Credenciales (sin exponerlas en GitHub)
+El repo **no contiene** ninguna clave. Las credenciales se manejan así:
+- **Local:** copia `js/env.example.js` a `js/env.js` (está en `.gitignore`, no se sube) y pega tu `url` + `anonKey`.
+- **Vercel (deploy):** el build genera `js/env.js` automáticamente desde las variables de entorno **`SUPABASE_URL`** y **`SUPABASE_ANON_KEY`**. Configúralas en *Project Settings → Environment Variables*.
 
-### c) Crear tu usuario ADMIN
-1. Crea tu usuario en Authentication → Users (p.ej. `tu@correo.com`).
-2. Cópia su **UUID** de la lista de usuarios.
-3. En SQL Editor ejecuta (reemplaza `TU_USER_UUID`):
-   ```sql
-   insert into public.perfiles (user_id, rol) values ('TU_USER_UUID', 'admin')
-   on conflict (user_id) do update set rol = 'admin';
-   ```
-   Solo el admin ve y gestiona el botón **👥 Usuarios**.
-
-### d) Variables de entorno en Vercel
-Agrégalas en **Vercel → Dashboard → proyecto → Settings → Environment Variables** (para Production/Preview/Development):
-- `SUPABASE_URL` = tu Project URL (ej. `https://xxxx.supabase.co`)
-- `SUPABASE_ANON_KEY` = tu anon public key
-- `SUPABASE_SERVICE_ROLE_KEY` = tu **service_role key** (⚠️ esta NO debe ir nunca al frontend ni al repo; solo la usa el backend)
-
-> ⚠️ **Seguridad:** las credenciales reales van en `js/env.js` (gitignoreado) y en las variables de entorno de Vercel. **Nunca** pegues la `service_role key` en el repo. Las credenciales expuestas en el historial de git deben **rotarse** en Supabase (Settings → API → Roll).
+> ⚠️ **Seguridad:** la `anon key` de Supabase es pública por diseño y el frontend la necesita, pero **ya no se expone en GitHub**. La protección real de tus datos es el **RLS + login obligatorio**. Para invalidar una key que llegó a exponerse, rótala en *Supabase → Project Settings → API → Roll*.
 
 ---
 
@@ -73,23 +55,20 @@ Agrégalas en **Vercel → Dashboard → proyecto → Settings → Environment V
 | **Filtrar por hotel** | Usa los chips de hoteles arriba. |
 | **Agregar hotel** | Clic en **+ Hotel**. |
 | **Bandeja** | Fichas sin día asignado, para planificar después. |
-| **Gestionar usuarios (solo admin)** | Botón **👥 Usuarios**: crear, resetear contraseña, activar/desactivar y eliminar usuarios. |
 
 ## Estructura
 ```
 organizate/
-├── index.html                # Interfaz (login + calendario + usuarios)
+├── index.html                # Interfaz (login + calendario)
 ├── css/estilos.css           # Estilos
 ├── js/
-│   ├── env.js                # CREDENCIALES REALES (gitignoreado - NO subir)
-│   ├── env.example.js        # Plantilla de env.js
+│   ├── env.example.js        # Plantilla de credenciales
+│   ├── env.js                # CREDENCIALES REALES (gitignoreado - NO subir; lo genera el build en Vercel)
 │   ├── config.js             # Lector de credenciales (sin secretos)
 │   └── app.js                # Lógica de la app
-├── api/
-│   ├── package.json
-│   └── usuarios.js           # Backend (Vercel Function) - gestión de usuarios
-└── supabase/
-    ├── schema.sql            # Tablas base
-    ├── schema_v2.sql         # Recurrencia + instancias
-    └── schema_v3.sql         # perfiles (roles)
+├── scripts/build-env.js      # Genera js/env.js desde vars de entorno (build)
+├── supabase/
+│   ├── schema.sql            # Tablas base
+│   └── schema_v2.sql         # Recurrencia + instancias
+└── vercel.json               # Config de build (Vercel)
 ```
