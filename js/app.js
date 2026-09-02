@@ -8,7 +8,7 @@ if (!SUPABASE_URL || SUPABASE_URL === 'SIN_CONFIGURAR' || !SUPABASE_ANON_KEY || 
   alert('⚠️ Falta configurar Supabase.\nCopia el archivo js/env.js (crea una plantilla) y pega tu SUPABASE_URL y SUPABASE_ANON_KEY reales.');
 }
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ---------- Estado global ----------
 const estado = {
@@ -46,7 +46,7 @@ $('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   limpiarError($('login-error'));
   $('login-btn').textContent = 'Ingresando...';
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await sbClient.auth.signInWithPassword({
     email: $('login-email').value.trim(),
     password: $('login-pass').value,
   });
@@ -54,9 +54,9 @@ $('login-form').addEventListener('submit', async (e) => {
   if (error) return mostrarError($('login-error'), error.message);
 });
 
-$('btn-logout').addEventListener('click', async () => { await supabase.auth.signOut(); });
+$('btn-logout').addEventListener('click', async () => { await sbClient.auth.signOut(); });
 
-supabase.auth.onAuthStateChange((event, session) => {
+sbClient.auth.onAuthStateChange((event, session) => {
   estado.user = session ? session.user : null;
   if (estado.user) { cargarTodo(); mostrarApp(); }
   else { mostrarLogin(); }
@@ -73,22 +73,22 @@ async function cargarTodo() {
 }
 
 async function cargarHoteles() {
-  const { data, error } = await supabase.from('hoteles').select('*').order('nombre');
+  const { data, error } = await sbClient.from('hoteles').select('*').order('nombre');
   if (error) { console.error(error); return; }
   estado.hoteles = data || [];
 }
 async function cargarFichas() {
-  const { data, error } = await supabase.from('fichas').select('*').order('orden');
+  const { data, error } = await sbClient.from('fichas').select('*').order('orden');
   if (error) { console.error(error); return; }
   estado.fichas = data || [];
 }
 async function cargarRegistros() {
-  const { data, error } = await supabase.from('registros').select('*').order('fecha', { ascending: false });
+  const { data, error } = await sbClient.from('registros').select('*').order('fecha', { ascending: false });
   if (error) { console.error(error); return; }
   estado.registros = data || [];
 }
 async function cargarInstancias() {
-  const { data, error } = await supabase.from('instancias').select('*');
+  const { data, error } = await sbClient.from('instancias').select('*');
   if (error) { console.error(error); return; }
   estado.instancias = data || [];
 }
@@ -173,7 +173,7 @@ async function preguntarAgregarHotel() {
   const nombre = prompt('Nombre del hotel:');
   if (!nombre || !nombre.trim()) return;
   const color = prompt('Color (hex), ej. #ef4444:', '#3b82f6');
-  const { error } = await supabase.from('hoteles').insert({ nombre: nombre.trim(), color: (color || '#3b82f6').trim() });
+  const { error } = await sbClient.from('hoteles').insert({ nombre: nombre.trim(), color: (color || '#3b82f6').trim() });
   if (error) { alert('Error: ' + error.message); return; }
   await cargarHoteles();
   renderizarHoteles();
@@ -413,15 +413,15 @@ document.addEventListener('drop', async (e) => {
     const esRecurrente = (ficha.recurrencia || 'puntual') !== 'puntual';
     if (!esRecurrente) {
       // Puntual: simplemente mover su fecha
-      await supabase.from('fichas').update({ fecha: nuevaFecha, periodo: nuevoPeriodo }).eq('id', ficha.id);
+      await sbClient.from('fichas').update({ fecha: nuevaFecha, periodo: nuevoPeriodo }).eq('id', ficha.id);
     } else {
       // Recurrente: creamos una instancia "realizada=false" en la fecha origen para
       // suprimirla, y una copia puntual en el destino (ocurrencia movida).
-      await supabase.from('instancias').insert({
+      await sbClient.from('instancias').insert({
         ficha_id: ficha.id, fecha, realizada: false,
         user_id: estado.user.id,
       }).then(() => {});
-      await supabase.from('fichas').insert({
+      await sbClient.from('fichas').insert({
         user_id: estado.user.id,
         hotel_id: ficha.hotel_id,
         emoji: ficha.emoji, titulo: ficha.titulo, descripcion: ficha.descripcion,
@@ -432,7 +432,7 @@ document.addEventListener('drop', async (e) => {
     }
   } else {
     // Ficha de bandeja -> asignar fecha
-    await supabase.from('fichas').update({ fecha: nuevaFecha, periodo: nuevoPeriodo }).eq('id', ficha.id);
+    await sbClient.from('fichas').update({ fecha: nuevaFecha, periodo: nuevoPeriodo }).eq('id', ficha.id);
   }
 
   document.querySelectorAll('.cal-dia.destino').forEach(c => c.classList.remove('destino'));
@@ -519,10 +519,10 @@ $('form-ficha').addEventListener('submit', async (e) => {
   if (!payload.titulo) return;
 
   if (editandoFichaId) {
-    const { error } = await supabase.from('fichas').update(payload).eq('id', editandoFichaId);
+    const { error } = await sbClient.from('fichas').update(payload).eq('id', editandoFichaId);
     if (error) { alert('Error: ' + error.message); return; }
   } else {
-    const { error } = await supabase.from('fichas').insert(payload);
+    const { error } = await sbClient.from('fichas').insert(payload);
     if (error) { alert('Error: ' + error.message); return; }
   }
   cerrarModalFicha();
@@ -634,7 +634,7 @@ $('d-eliminar').addEventListener('click', async () => {
   const f = estado.fichaSeleccionada;
   if (!f) return;
   if (!confirm(`¿Eliminar la ficha "${f.titulo}"?`)) return;
-  const { error } = await supabase.from('fichas').delete().eq('id', f.id);
+  const { error } = await sbClient.from('fichas').delete().eq('id', f.id);
   if (error) { alert('Error: ' + error.message); return; }
   $('modal-ficha-detalle').classList.add('hidden');
   await Promise.all([cargarFichas(), cargarRegistros(), cargarInstancias()]);
@@ -650,10 +650,10 @@ $('form-registro').addEventListener('submit', async (e) => {
   const desc = $('r-descripcion').value.trim();
 
   await Promise.all([
-    supabase.from('registros').insert({ ficha_id: f.id, fecha, descripcion: desc }),
-    supabase.from('instancias').upsert({ ficha_id: f.id, fecha, realizada: true }, { onConflict: 'ficha_id,fecha' }),
+    sbClient.from('registros').insert({ ficha_id: f.id, fecha, descripcion: desc }),
+    sbClient.from('instancias').upsert({ ficha_id: f.id, fecha, realizada: true }, { onConflict: 'ficha_id,fecha' }),
   ]);
-  await supabase.from('fichas').update({ fija: true }).eq('id', f.id);
+  await sbClient.from('fichas').update({ fija: true }).eq('id', f.id);
 
   $('r-descripcion').value = '';
   await Promise.all([cargarFichas(), cargarRegistros(), cargarInstancias()]);
@@ -679,7 +679,7 @@ function escapar(str) {
 
 // Inicio
 if (SUPABASE_URL && SUPABASE_URL !== 'SIN_CONFIGURAR') {
-  supabase.auth.getSession().then(({ data }) => {
+  sbClient.auth.getSession().then(({ data }) => {
     if (data.session) {
       estado.user = data.session.user;
       cargarTodo();
