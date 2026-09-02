@@ -173,7 +173,7 @@ async function preguntarAgregarHotel() {
   const nombre = prompt('Nombre del hotel:');
   if (!nombre || !nombre.trim()) return;
   const color = prompt('Color (hex), ej. #ef4444:', '#3b82f6');
-  const { error } = await sbClient.from('hoteles').insert({ nombre: nombre.trim(), color: (color || '#3b82f6').trim() });
+  const { error } = await sbClient.from('hoteles').insert({ user_id: estado.user.id, nombre: nombre.trim(), color: (color || '#3b82f6').trim() });
   if (error) { alert('Error: ' + error.message); return; }
   await cargarHoteles();
   renderizarHoteles();
@@ -505,6 +505,7 @@ $('form-ficha').addEventListener('submit', async (e) => {
     dias_semana = [new Date($('f-fecha').value + 'T00:00:00').getDay()];
   }
   const payload = {
+    user_id: estado.user.id,
     emoji: $('f-emoji').value.trim() || null,
     titulo: $('f-titulo').value.trim(),
     hotel_id: $('f-hotel').value || null,
@@ -650,8 +651,8 @@ $('form-registro').addEventListener('submit', async (e) => {
   const desc = $('r-descripcion').value.trim();
 
   await Promise.all([
-    sbClient.from('registros').insert({ ficha_id: f.id, fecha, descripcion: desc }),
-    sbClient.from('instancias').upsert({ ficha_id: f.id, fecha, realizada: true }, { onConflict: 'ficha_id,fecha' }),
+    sbClient.from('registros').insert({ user_id: estado.user.id, ficha_id: f.id, fecha, descripcion: desc }),
+    sbClient.from('instancias').upsert({ user_id: estado.user.id, ficha_id: f.id, fecha, realizada: true }, { onConflict: 'ficha_id,fecha' }),
   ]);
   await sbClient.from('fichas').update({ fija: true }).eq('id', f.id);
 
