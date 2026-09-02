@@ -118,16 +118,25 @@ end $$;
 -- PARTE 3: Datos de ejemplo (solo si las tablas estan vacias)
 -- ============================================================
 
--- Obtener el user_id del usuario actual
+-- Obtener el user_id por email (funciona desde SQL Editor / service_role)
 DO $$
 DECLARE
-  uid uuid := auth.uid();
+  uid uuid;
   h_corales    uuid;
   h_latam      uuid;
   h_ghl        uuid;
   h_sonesta_ib uuid;
   h_sonesta_bu uuid;
 BEGIN
+  -- Buscar usuario por email
+  SELECT id INTO uid FROM auth.users WHERE email = 'jean.galvis06@gmail.com' LIMIT 1;
+
+  IF uid IS NULL THEN
+    RAISE EXCEPTION 'No se encontro usuario con email jean.galvis06@gmail.com. Crea el usuario primero en Supabase Authentication.';
+  END IF;
+
+  RAISE NOTICE 'Usuario encontrado: %', uid;
+
   -- Solo insertar si no hay hoteles para este usuario
   IF EXISTS (SELECT 1 FROM public.hoteles WHERE user_id = uid) THEN
     RAISE NOTICE 'Ya existen hoteles para este usuario. Saltando seed.';
