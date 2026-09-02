@@ -32,7 +32,7 @@ const YYYYMMDD = (d) => {
   return `${y}-${m}-${dd}`;
 };
 const periodos = { manana: 'Mañana', tarde: 'Tarde', noche: 'Noche' };
-const recurrenciaTxt = { puntual: 'Puntual (una vez)', diaria: 'Diaria', semanal: 'Semanal', mensual: 'Mensual' };
+const recurrenciaTxt = { puntual: 'Puntual (una vez)', diaria: 'Diaria', semanal: 'Semanal', mensual: 'Mensual', semana_del_mes: 'Semana del mes (ej: 3er miércoles)' };
 
 // ============================================================
 // AUTH
@@ -118,6 +118,23 @@ function fichaOcurreEn(ficha, date) {
   if (rec === 'mensual') {
     const origen = ficha.fecha ? new Date(ficha.fecha) : date;
     return date.getDate() === (origen.getDate());
+  }
+  if (rec === 'semana_del_mes') {
+    // Ej: "3er miércoles de cada mes"
+    const targetDay = ficha.dia_semana;    // 0=Domingo ... 6=Sábado
+    const targetWeek = ficha.semana_del_mes; // 1=primera, 2=segunda... 5=quinta
+    if (targetDay == null || targetWeek == null) return false;
+    if (date.getDay() !== targetDay) return false;
+
+    // Calcular qué semana del mes es esta fecha para ese día de la semana
+    const primerDiaMes = new Date(date.getFullYear(), date.getMonth(), 1);
+    const primerTarget = new Date(primerDiaMes);
+    while (primerTarget.getDay() !== targetDay) {
+      primerTarget.setDate(primerTarget.getDate() + 1);
+    }
+    const diffDias = Math.floor((date - primerTarget) / 86400000);
+    const numSemana = Math.floor(diffDias / 7) + 1;
+    return numSemana === targetWeek;
   }
   // puntual
   if (!ficha.fecha) return false;
@@ -486,9 +503,12 @@ function abrirModalNueva(fechaSugerida, periodoSugerido, fichaExistente) {
   $('f-periodo').value = fichaExistente ? fichaExistente.periodo : (periodoSugerido || 'manana');
   $('f-fecha').value = fichaExistente ? (fichaExistente.fecha || '') : (fechaSugerida || '');
   $('f-recurrencia').value = fichaExistente ? (fichaExistente.recurrencia || 'puntual') : 'puntual';
+  $('f-dia-semana').value = fichaExistente ? (fichaExistente.dia_semana ?? '1') : '1';
+  $('f-semana-mes').value = fichaExistente ? (fichaExistente.semana_del_mes ?? '1') : '1';
   $('f-hora').value = fichaExistente ? (fichaExistente.hora || '') : '';
   $('f-responsable').value = fichaExistente ? (fichaExistente.responsable || '') : '';
   $('f-descripcion').value = fichaExistente ? (fichaExistente.descripcion || '') : '';
+  toggleSemanaDelMes();
   $('modal-ficha').classList.remove('hidden');
 }
 
@@ -496,6 +516,12 @@ function cerrarModalFicha() {
   $('modal-ficha').classList.add('hidden');
   editandoFichaId = null;
 }
+
+function toggleSemanaDelMes() {
+  const show = $('f-recurrencia').value === 'semana_del_mes';
+  $('f-semana-del-mes-campos').classList.toggle('hidden', !show);
+}
+$('f-recurrencia').addEventListener('change', toggleSemanaDelMes);
 
 $('form-ficha').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -513,6 +539,8 @@ $('form-ficha').addEventListener('submit', async (e) => {
     fecha: $('f-fecha').value || null,
     recurrencia,
     dias_semana,
+    dia_semana: recurrencia === 'semana_del_mes' ? parseInt($('f-dia-semana').value) : null,
+    semana_del_mes: recurrencia === 'semana_del_mes' ? parseInt($('f-semana-mes').value) : null,
     hora: $('f-hora').value || null,
     responsable: $('f-responsable').value.trim() || null,
     descripcion: $('f-descripcion').value.trim(),
