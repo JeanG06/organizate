@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OrganizaTe · Tablero de TI</title>
+  <title>Posits · Tablero de TI & Hoteles</title>
   <link rel="stylesheet" href="css/estilos.css" />
 </head>
 <body>
@@ -11,8 +11,8 @@
   <!-- ======= PANTALLA DE LOGIN ======= -->
   <section id="pantalla-login" class="screen login-screen">
     <div class="login-card">
-      <div class="login-logo">♟️</div>
-      <h1>OrganizaTe</h1>
+      <div class="login-logo">📌</div>
+      <h1>Posits</h1>
       <p class="login-sub">Tablero de trabajo · TI & Hoteles</p>
 
       <div id="login-error" class="login-error hidden"></div>
@@ -32,28 +32,28 @@
 
     <header class="app-header">
       <div class="brand">
-        <span class="brand-icon">♟️</span>
-        <span class="brand-name">OrganizaTe</span>
+        <span class="brand-icon">📌</span>
+        <span class="brand-name">Posits</span>
       </div>
 
-      <!-- Filtro por hotel -->
+      <div class="header-actions">
+        <button id="btn-config" class="btn-icon" title="Configuración">⚙️</button>
+        <button id="btn-nueva-ficha" class="btn btn-primary">+ Nueva ficha</button>
+        <button id="btn-logout" class="btn btn-ghost" title="Cerrar sesion">Salir</button>
+      </div>
+    </header>
+
+    <div class="toolbar">
       <div class="hotel-filter" id="hotel-filter"></div>
 
-      <!-- Controles de mes -->
       <div class="month-nav">
         <button id="btn-mes-anterior" class="btn-icon" title="Mes anterior">◀</button>
         <h2 id="mes-titulo">—</h2>
         <button id="btn-mes-siguiente" class="btn-icon" title="Mes siguiente">▶</button>
         <button id="btn-hoy" class="btn btn-ghost">Hoy</button>
       </div>
+    </div>
 
-      <div class="header-actions">
-        <button id="btn-nueva-ficha" class="btn btn-primary">+ Nueva ficha</button>
-        <button id="btn-logout" class="btn btn-ghost" title="Cerrar sesion">Salir</button>
-      </div>
-    </header>
-
-    <!-- Leyenda de periodos -->
     <div class="leyenda">
       <span><i class="dot manana"></i> Mañana</span>
       <span><i class="dot tarde"></i> Tarde</span>
@@ -61,10 +61,8 @@
       <span><i class="dot fija"></i> Fija (tiene registro)</span>
     </div>
 
-    <!-- Calendario mensual -->
     <main id="calendario" class="calendario"></main>
 
-    <!-- Fichas de la bandeja (sin fecha asignada) -->
     <section class="bandeja">
       <h3>📋 Bandeja de fichas (sin día asignado)</h3>
       <div id="bandeja-contenido" class="bandeja-contenido"></div>
@@ -190,6 +188,26 @@
       <div class="modal-actions">
         <button type="button" id="d-eliminar" class="btn btn-danger">Eliminar ficha</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ======= PANEL CONFIGURACION (sidebar) ======= -->
+  <div id="panel-config" class="config-panel hidden">
+    <div class="config-panel-header">
+      <h3>⚙️ Configuración</h3>
+      <button class="btn-icon" id="config-cerrar">✕</button>
+    </div>
+
+    <div class="config-section">
+      <h4>🏨 Hoteles</h4>
+      <button id="config-btn-nuevo-hotel" class="btn btn-primary btn-block">+ Nuevo hotel</button>
+      <div id="config-lista-hoteles" class="config-lista-hoteles"></div>
+    </div>
+
+    <div class="config-section">
+      <h4>📌 Posits</h4>
+      <p class="config-desc">Todas tus fichas creadas, para editarlas o eliminarlas.</p>
+      <div id="config-lista-fichas" class="config-lista-fichas"></div>
     </div>
   </div>
 

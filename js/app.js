@@ -198,6 +198,119 @@ async function preguntarAgregarHotel() {
 }
 
 // ============================================================
+// PANEL DE CONFIGURACION (hoteles + posits)
+// ============================================================
+$('btn-config').addEventListener('click', abrirConfig);
+$('config-cerrar').addEventListener('click', cerrarConfig);
+$('config-btn-nuevo-hotel').addEventListener('click', () => { cerrarConfig(); preguntarAgregarHotel(); });
+
+function abrirConfig() {
+  $('panel-config').classList.remove('hidden');
+  renderizarConfigHoteles();
+  renderizarConfigFichas();
+}
+function cerrarConfig() { $('panel-config').classList.add('hidden'); }
+
+function renderizarConfigHoteles() {
+  const lista = $('config-lista-hoteles');
+  lista.innerHTML = '';
+  if (estado.hoteles.length === 0) {
+    lista.innerHTML = '<p class="config-vacio">Aún no tienes hoteles.</p>';
+    return;
+  }
+  estado.hoteles.forEach(h => {
+    const item = document.createElement('div');
+    item.className = 'config-hotel';
+    item.innerHTML = `
+      <span class="config-hotel-color" style="background:${h.color}"></span>
+      <input class="config-hotel-nombre" value="${escapar(h.nombre)}" data-id="${h.id}" />
+      <input type="color" class="config-hotel-colorpicker" value="${h.color}" data-id="${h.id}" title="Color" />
+      <button class="btn btn-icon btn-mini" data-accion="guardar" data-id="${h.id}" title="Guardar">💾</button>
+      <button class="btn btn-icon btn-mini btn-danger" data-accion="eliminar" data-id="${h.id}" title="Eliminar hotel">🗑️</button>
+    `;
+    lista.appendChild(item);
+  });
+
+  lista.querySelectorAll('[data-accion="guardar"]').forEach(b =>
+    b.addEventListener('click', () => guardarHotel(b.dataset.id)));
+  lista.querySelectorAll('[data-accion="eliminar"]').forEach(b =>
+    b.addEventListener('click', () => eliminarHotel(b.dataset.id)));
+}
+
+async function guardarHotel(id) {
+  const nombreInput = document.querySelector(`.config-hotel-nombre[data-id="${id}"]`);
+  const colorInput = document.querySelector(`.config-hotel-colorpicker[data-id="${id}"]`);
+  const { error } = await sbClient.from('hoteles').update({
+    nombre: nombreInput.value.trim(),
+    color: colorInput.value,
+  }).eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  await cargarHoteles();
+  renderizarHoteles();
+  renderizarConfigHoteles();
+  renderizarTodo();
+}
+
+async function eliminarHotel(id) {
+  const h = estado.hoteles.find(x => x.id === id);
+  if (!confirm(`¿Eliminar el hotel "${h ? h.nombre : ''}" y todos sus posits?`)) return;
+  const { error } = await sbClient.from('hoteles').delete().eq('id', id);
+  if (error) { alert('Error: ' + error.message); return; }
+  if (estado.filtroHotel === id) estado.filtroHotel = null;
+  await cargarHoteles();
+  renderizarHoteles();
+  renderizarConfigHoteles();
+  renderizarTodo();
+}
+
+function renderizarConfigFichas() {
+  const lista = $('config-lista-fichas');
+  lista.innerHTML = '';
+  if (estado.fichas.length === 0) {
+    lista.innerHTML = '<p class="config-vacio">Aún no tienes posits.</p>';
+    return;
+  }
+  estado.fichas.forEach(f => {
+    const hotel = hotelDe(f.hotel_id);
+    const item = document.createElement('div');
+    item.className = 'config-ficha';
+    item.innerHTML = `
+      <span class="config-ficha-emoji">${f.emoji || '📌'}</span>
+      <div class="config-ficha-info">
+        <div class="config-ficha-titulo">${escapar(f.titulo)}</div>
+        <div class="config-ficha-meta">${hotel ? escapar(hotel.nombre) : 'Sin hotel'} · ${recurrenciaTxt[f.recurrencia] || 'Puntual'}</div>
+      </div>
+      <button class="btn btn-icon btn-mini" data-accion="editar" data-id="${f.id}" title="Editar">✏️</button>
+      <button class="btn btn-icon btn-mini btn-danger" data-accion="eliminar" data-id="${f.id}" title="Eliminar">🗑️</button>
+    `;
+    lista.appendChild(item);
+  });
+
+  lista.querySelectorAll('[data-accion="editar"]').forEach(b =>
+    b.addEventListener('click', () => {
+      const f = estado.fichas.find(x => x.id === b.dataset.id);
+      if (f) { cerrarConfig(); abrirModalNueva(null, null, f); }
+    }));
+  lista.querySelectorAll('[data-accion="eliminar"]').forEach(b =>
+    b.addEventListener('click', () => {
+      estado.fichaSeleccionada = estado.fichas.find(x => x.id === b.dataset.id);
+      eliminarFichaDesdeConfig();
+    }));
+}
+
+async function eliminarFichaDesdeConfig() {
+  const f = estado.fichaSeleccionada;
+  if (!f) return;
+  if (!confirm(`¿Eliminar el posit "${f.titulo}"?`)) return;
+  const { error } = await sbClient.from('fichas').delete().eq('id', f.id);
+  if (error) { alert('Error: ' + error.message); return; }
+  estado.fichaSeleccionada = null;
+  await Promise.all([cargarFichas(), cargarRegistros(), cargarInstancias()]);
+  renderizarConfigFichas();
+  renderizarTodo();
+}
+
+// ============================================================
 // RENDER CALENDARIO (tablero)
 // ============================================================
 function renderizarTodo() {
